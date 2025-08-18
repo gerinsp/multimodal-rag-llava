@@ -13,7 +13,6 @@ class Retriever:
         with open(META_PATH, "rb") as f:
             self.meta = pickle.load(f)
 
-        # ensure event loop exists (for grpc.aio)
         try:
             asyncio.get_running_loop()
         except RuntimeError:

@@ -36,13 +36,12 @@ def build_corpus(docs_dir: Path) -> List[Dict]:
     return corpus
 
 def embed_passages(passages: List[str], model) -> np.ndarray:
-    # E5 format: "passage: ..."
     texts = [f"passage: {p}" for p in passages]
     return model.encode(texts, normalize_embeddings=True, convert_to_numpy=True)
 
 def write_faiss(emb: np.ndarray):
     dim = emb.shape[1]
-    index = faiss.IndexFlatIP(dim)  # cosine via vektor sudah dinormalisasi
+    index = faiss.IndexFlatIP(dim)
     index.add(emb)
     faiss.write_index(index, str(FAISS_PATH))
 

@@ -26,7 +26,7 @@ def build_prompt(question: str, retrieved: List[Dict]) -> str:
 class VLM(Protocol):
     def answer(self, image: Image.Image, question: str, retrieved: List[Dict]) -> str: ...
 
-# ========= 1) LOCAL LLaVA =========
+# LOCAL LLaVA
 class LocalLlava(VLM):
     def __init__(self, model_name: str = LLAVA_MODEL_NAME, local_dir: str | None = None):
         dtype = torch.float16 if torch.cuda.is_available() else torch.float32
@@ -60,7 +60,7 @@ class LocalLlava(VLM):
             out = out.split("Jawaban:", 1)[-1].strip()
         return out
 
-# ========= 2) HF INFERENCE API (LLaVA) =========
+# HF INFERENCE API (LLaVA)
 class HfApiLlava(VLM):
     def __init__(self, api_url: str = HF_API_URL, token: str = HF_API_TOKEN):
         self.api_url = api_url
@@ -78,7 +78,7 @@ class HfApiLlava(VLM):
         payload = {
             "inputs": {
                 "text": build_prompt(question, retrieved),
-                "image": self._img_to_base64(image)  # banyak endpoint terima base64
+                "image": self._img_to_base64(image)
             },
             "parameters": {
                 "max_new_tokens": MAX_NEW_TOKENS,
