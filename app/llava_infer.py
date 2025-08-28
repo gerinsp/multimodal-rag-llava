@@ -5,7 +5,7 @@ from PIL import Image
 
 import torch
 from transformers import AutoProcessor, AutoModelForCausalLM
-from peft import PeftModel  # <<< penting untuk tempel LoRA
+from peft import PeftModel
 
 from .config import (
     LLAVA_MODE, LLAVA_MODEL_NAME, LLAVA_LOCAL_PATH, LLAVA_ADAPTER_PATH, HF_TOKEN,
@@ -27,25 +27,18 @@ def build_prompt(question: str, retrieved: List[Dict]) -> str:
 class VLM(Protocol):
     def answer(self, image: Image.Image, question: str, retrieved: List[Dict]) -> str: ...
 
-# ===================== LOCAL LLaVA =====================
 class LocalLlava(VLM):
-    """
-    Load base LLaVA 1.5 7B dari ./model dan tempel LoRA dari ./adapter.
-    Processor diambil dari base model lokal (adapter tidak punya preprocessor_config).
-    """
     def __init__(self, model_name: str = str(LLAVA_LOCAL_PATH), adapter_dir: str | None = None):
         dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
         model_path = model_name  # path ke ./model
         adapter_path = str(LLAVA_ADAPTER_PATH if adapter_dir is None else adapter_dir)
 
-        # 1) Processor dari BASE model lokal
         self.processor = AutoProcessor.from_pretrained(
             model_path,
             trust_remote_code=True,
         )
 
-        # 2) Load BASE model dari lokal
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path,
             torch_dtype=dtype,
@@ -53,13 +46,7 @@ class LocalLlava(VLM):
             trust_remote_code=True,
         )
 
-        # 3) Tempel adapter LoRA dari ./adapter
-        #    (pastikan folder ./adapter berisi adapter_config.json dan adapter_model.safetensors)
         self.model = PeftModel.from_pretrained(self.model, adapter_path)
-
-        # Alternatif kalau ingin multi-adapter:
-        # self.model.load_adapter(adapter_path, adapter_name="animal")
-        # self.model.set_adapter("animal")
 
     @torch.inference_mode()
     def answer(self, image: Image.Image, question: str, retrieved: List[Dict]) -> str:
@@ -73,7 +60,6 @@ class LocalLlava(VLM):
             out = out.split("Jawaban:", 1)[-1].strip()
         return out
 
-# ===================== HF INFERENCE API =====================
 class HfApiLlava(VLM):
     def __init__(self, api_url: str = HF_API_URL, token: str = HF_API_TOKEN):
         self.api_url = api_url
